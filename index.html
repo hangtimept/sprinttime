@@ -13,9 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
-/* ============================================================
-   Sprint Timer Pro — Single-file dual-phone timing
-   ============================================================ */
 :root {
   --bg: #070b10;
   --panel: rgba(16, 22, 31, 0.92);
@@ -35,51 +32,29 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 12px);
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 15px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none;
-  touch-action: manipulation;
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none; touch-action: manipulation;
 }
-
 body {
   background:
     radial-gradient(ellipse 90% 50% at 50% -18%, rgba(0, 229, 255, 0.1), transparent),
     radial-gradient(ellipse 60% 40% at 100% 80%, rgba(0, 80, 200, 0.06), transparent),
     var(--bg);
-  min-height: 100dvh;
-  padding-top: var(--safe-top);
+  min-height: 100dvh; padding-top: var(--safe-top);
 }
-
 #app {
-  max-width: 480px;
-  margin: 0 auto;
+  max-width: 480px; margin: 0 auto;
   padding: 12px 14px calc(16px + var(--safe-bottom));
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  min-height: 100dvh; display: flex; flex-direction: column;
 }
-
-/* Header */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; }
 .logo {
-  width: 40px; height: 40px;
-  border-radius: 11px;
+  width: 40px; height: 40px; border-radius: 11px;
   background: linear-gradient(135deg, #00e5ff, #0072ff);
   display: grid; place-items: center;
   font-weight: 800; font-size: 14px; color: #001018;
@@ -87,27 +62,19 @@ body {
 }
 .brand h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
 .tagline { font-size: 11px; color: var(--muted); }
-
 .conn-badge {
-  font-size: 11px; font-weight: 600;
-  padding: 5px 11px; border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--elevated); color: var(--muted);
+  font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--elevated); color: var(--muted);
 }
 .conn-badge.online {
-  color: var(--green);
-  border-color: rgba(0, 230, 118, 0.4);
+  color: var(--green); border-color: rgba(0, 230, 118, 0.4);
   background: rgba(0, 230, 118, 0.12);
 }
 .conn-badge.offline { color: var(--muted); }
-
-/* Status */
 .status {
-  text-align: center;
-  font-size: 13px; font-weight: 700;
+  text-align: center; font-size: 13px; font-weight: 700;
   letter-spacing: 0.5px; text-transform: uppercase;
-  padding: 12px 14px; border-radius: 12px;
-  margin-bottom: 14px;
+  padding: 12px 14px; border-radius: 12px; margin-bottom: 14px;
   transition: background .2s, color .2s;
 }
 .status.waiting { background: #2a3441; color: #c5d0dc; }
@@ -117,93 +84,57 @@ body {
 .status.finished { background: rgba(255, 77, 109, 0.28); color: #ff8a9a; }
 .status.calibrating { background: rgba(41, 121, 255, 0.28); color: #82b1ff; }
 .status.error { background: rgba(255, 77, 109, 0.35); color: #ffcdd2; }
-
-/* Panels */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  backdrop-filter: blur(12px);
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; backdrop-filter: blur(12px);
 }
-
 .note {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 13px; color: var(--muted);
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--muted);
   margin-bottom: 16px; line-height: 1.5;
 }
 .note strong { color: var(--text); }
-
 .role-row { display: grid; gap: 10px; margin-bottom: 16px; }
 .role-btn {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  padding: 16px 18px;
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  color: var(--text);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: border-color .2s, background .2s, transform .12s;
+  padding: 16px 18px; background: var(--elevated); border: 1px solid var(--border);
+  border-radius: 14px; color: var(--text); cursor: pointer; text-align: left;
+  font-family: inherit; transition: border-color .2s, background .2s, transform .12s;
 }
 .role-btn:active { transform: scale(0.98); }
 .role-btn:hover, .role-btn.active {
-  border-color: var(--border-strong);
-  background: rgba(0, 229, 255, 0.08);
+  border-color: var(--border-strong); background: rgba(0, 229, 255, 0.08);
 }
 .role-btn .role-icon {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  background: var(--accent-dim);
-  display: grid; place-items: center;
-  font-size: 13px; font-weight: 700; color: var(--accent);
-  margin-bottom: 4px;
+  width: 28px; height: 28px; border-radius: 8px; background: var(--accent-dim);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  color: var(--accent); margin-bottom: 4px;
 }
 .role-btn .role-title { font-size: 15px; font-weight: 600; }
 .role-btn .role-desc { font-size: 12px; color: var(--muted); }
-
 .pair-box { text-align: center; margin-top: 8px; }
 .pair-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 .room-code {
-  font-family: var(--mono);
-  font-size: 36px; font-weight: 700;
-  letter-spacing: 8px; color: var(--accent);
-  background: rgba(0,0,0,0.35);
-  padding: 14px 20px; border-radius: 12px;
-  border: 1px solid var(--border-strong);
+  font-family: var(--mono); font-size: 36px; font-weight: 700;
+  letter-spacing: 8px; color: var(--accent); background: rgba(0,0,0,0.35);
+  padding: 14px 20px; border-radius: 12px; border: 1px solid var(--border-strong);
   display: inline-block; min-width: 200px;
 }
 .pair-hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
-
-.code-row {
-  display: flex; gap: 10px; margin-top: 8px;
-}
+.code-row { display: flex; gap: 10px; margin-top: 8px; }
 .code-row input {
-  flex: 1;
-  font-family: var(--mono);
-  font-size: 22px; letter-spacing: 6px;
-  text-align: center; text-transform: uppercase;
-  padding: 14px; border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--elevated); color: var(--accent);
+  flex: 1; font-family: var(--mono); font-size: 22px; letter-spacing: 6px;
+  text-align: center; text-transform: uppercase; padding: 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--elevated); color: var(--accent);
 }
 .code-row input:focus {
-  outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
 }
-
-/* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 11px 16px;
-  font-family: inherit; font-size: 14px; font-weight: 600;
+  padding: 11px 16px; font-family: inherit; font-size: 14px; font-weight: 600;
   border-radius: 12px; border: 1px solid var(--border);
-  background: var(--elevated); color: var(--text);
-  cursor: pointer; transition: all .15s;
+  background: var(--elevated); color: var(--text); cursor: pointer; transition: all .15s;
   -webkit-user-select: none; user-select: none;
 }
 .btn:active { transform: scale(0.97); }
@@ -217,239 +148,109 @@ body {
 .btn-ghost { background: transparent; }
 .btn-lg { padding: 16px 20px; font-size: 16px; width: 100%; }
 .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
-.btn-danger {
-  background: rgba(255, 77, 109, 0.15);
-  border-color: rgba(255, 77, 109, 0.35);
-  color: #ff6b85;
-}
-
-/* Main panel */
 #mainPanel { display: none; flex-direction: column; gap: 14px; flex: 1; }
 #mainPanel.active { display: flex; }
-
 .role-pill {
-  text-align: center;
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0.4px; text-transform: uppercase;
-  color: var(--accent);
-  padding: 6px 12px;
-  background: var(--accent-dim);
-  border-radius: 999px;
-  align-self: center;
+  text-align: center; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.4px; text-transform: uppercase; color: var(--accent);
+  padding: 6px 12px; background: var(--accent-dim); border-radius: 999px; align-self: center;
 }
-
-/* Camera */
 .camera-box {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  background: #000;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border);
+  position: relative; width: 100%; aspect-ratio: 4/3; background: #000;
+  border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
-.camera-box video {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.camera-box canvas {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-}
+.camera-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.camera-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .detect-line {
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.7);
-  z-index: 3;
-  touch-action: none;
-  cursor: ew-resize;
+  position: absolute; top: 0; bottom: 0; width: 3px; left: 50%;
+  transform: translateX(-50%); background: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.7); z-index: 3;
+  touch-action: none; cursor: ew-resize;
 }
 .detect-line .line-handle {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 28px; height: 44px;
-  border-radius: 8px;
-  background: rgba(0, 229, 255, 0.9);
-  border: 2px solid #fff;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 28px; height: 44px; border-radius: 8px;
+  background: rgba(0, 229, 255, 0.9); border: 2px solid #fff;
   box-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 .detect-line .line-label {
-  position: absolute;
-  top: 10px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px; font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #001018;
-  background: var(--accent);
-  padding: 2px 6px; border-radius: 4px;
-  white-space: nowrap;
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: #001018;
+  background: var(--accent); padding: 2px 6px; border-radius: 4px; white-space: nowrap;
 }
 .detect-line.active {
-  background: #fff;
-  box-shadow: 0 0 24px #fff, 0 0 40px var(--accent);
+  background: #fff; box-shadow: 0 0 24px #fff, 0 0 40px var(--accent);
 }
 .flash {
-  position: absolute; inset: 0;
-  background: #fff;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 4;
-  transition: opacity .05s;
+  position: absolute; inset: 0; background: #fff; opacity: 0;
+  pointer-events: none; z-index: 4; transition: opacity .05s;
 }
 .flash.on { opacity: 0.55; }
-
-/* Timer */
-.timer-block {
-  text-align: center;
-  padding: 8px 0 4px;
-}
+.timer-block { text-align: center; padding: 8px 0 4px; }
 .timer {
-  font-family: var(--mono);
-  font-size: 56px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  color: var(--text);
-  line-height: 1.1;
+  font-family: var(--mono); font-size: 56px; font-weight: 700;
+  letter-spacing: -1px; color: var(--text); line-height: 1.1;
   text-shadow: 0 0 40px rgba(0, 229, 255, 0.15);
 }
 .timer-unit {
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 2px;
+  font-size: 12px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-top: 2px;
+}
+.precision-row {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  margin-top: 6px; min-height: 16px;
 }
 .speed-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-family: var(--mono);
-  font-size: 20px;
-  color: var(--accent);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 10px; font-family: var(--mono); font-size: 20px; color: var(--accent);
 }
 .speed-row select {
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
+  background: var(--elevated); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 8px; border-radius: 8px; font-size: 13px; font-family: inherit;
 }
-
-.controls {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-}
-
-/* Settings */
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.controls { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.settings { display: flex; flex-direction: column; gap: 12px; }
 .setting label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 6px;
+  display: flex; justify-content: space-between; font-size: 12px;
+  color: var(--muted); margin-bottom: 6px;
 }
-.setting input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent);
-}
+.setting input[type="range"] { width: 100%; accent-color: var(--accent); }
 .setting input[type="number"] {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--elevated);
-  color: var(--text);
-  font-size: 15px;
-  font-family: inherit;
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--elevated);
+  color: var(--text); font-size: 15px; font-family: inherit;
 }
-
 .cal-panel {
-  background: rgba(41, 121, 255, 0.1);
-  border: 1px solid rgba(41, 121, 255, 0.25);
-  border-radius: 12px;
-  padding: 12px;
+  background: rgba(41, 121, 255, 0.1); border: 1px solid rgba(41, 121, 255, 0.25);
+  border-radius: 12px; padding: 12px;
 }
 .cal-panel label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
-.meter-wrap {
-  height: 10px;
-  background: rgba(0,0,0,0.4);
-  border-radius: 6px;
-  overflow: hidden;
-}
+.meter-wrap { height: 10px; background: rgba(0,0,0,0.4); border-radius: 6px; overflow: hidden; }
 .meter-bar {
-  height: 100%;
-  width: 0%;
+  height: 100%; width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--green));
-  border-radius: 6px;
-  transition: width .08s linear;
+  border-radius: 6px; transition: width .06s linear;
 }
 .cal-hint { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
-
-/* History */
 .history-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
 }
 .history-header h2 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--muted);
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--muted);
 }
-.history-list {
-  list-style: none;
-  max-height: 160px;
-  overflow-y: auto;
-}
+.history-list { list-style: none; max-height: 160px; overflow-y: auto; }
 .history-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
 }
 .history-list li:last-child { border-bottom: none; }
-.history-list .time {
-  font-family: var(--mono);
-  font-weight: 600;
-  color: var(--text);
-}
+.history-list .time { font-family: var(--mono); font-weight: 600; color: var(--text); }
 .history-list .meta { font-size: 12px; color: var(--muted); }
-.history-list li.best .time { color: var(--accent); }
-.history-list li.best .meta { color: var(--accent); }
-
-.enable-cam-box {
-  text-align: center;
-  padding: 28px 16px;
-}
-.enable-cam-box p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
-
+.history-list li.best .time, .history-list li.best .meta { color: var(--accent); }
+.enable-cam-box { text-align: center; padding: 28px 16px; }
+.enable-cam-box p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 .hidden { display: none !important; }
   </style>
 </head>
@@ -460,7 +261,7 @@ body {
         <div class="logo">ST</div>
         <div>
           <h1>Sprint Timer Pro</h1>
-          <p class="tagline">Dual-phone precision timing</p>
+          <p class="tagline">High-precision dual-phone timing</p>
         </div>
       </div>
       <div id="connBadge" class="conn-badge offline">Offline</div>
@@ -468,33 +269,29 @@ body {
 
     <div id="statusBar" class="status waiting">Choose role to begin</div>
 
-    <!-- PAIRING -->
     <section id="pairingPanel" class="panel">
       <div class="note">
-        <strong>Setup:</strong> Open this page on <b>two iPhones</b> (Safari).  
-        One is the <b>START</b> camera, the other is the <b>FINISH</b> camera.  
-        Share the room code, enable cameras, arm, then run.
+        <strong>Setup:</strong> Open on <b>two iPhones</b> (Safari).  
+        One is <b>START</b>, one is <b>FINISH</b>. Share the code, enable cameras, arm, then run.  
+        Mount phones securely and keep the detection line perpendicular to the run direction.
       </div>
-
       <div class="role-row">
         <button class="role-btn" id="btnStart" type="button">
           <span class="role-icon">①</span>
           <span class="role-title">START Camera</span>
-          <span class="role-desc">Place at the starting line · creates room</span>
+          <span class="role-desc">Starting line · creates room</span>
         </button>
         <button class="role-btn" id="btnFinish" type="button">
           <span class="role-icon">②</span>
           <span class="role-title">FINISH Camera</span>
-          <span class="role-desc">Place at the finish line · joins room</span>
+          <span class="role-desc">Finish line · joins room</span>
         </button>
       </div>
-
       <div id="startUI" class="pair-box hidden">
         <p class="pair-label">Share this code with the Finish phone</p>
         <div class="room-code" id="roomCodeDisplay">·····</div>
         <p class="pair-hint" id="startHint">Waiting for Finish phone…</p>
       </div>
-
       <div id="finishUI" class="pair-box hidden">
         <p class="pair-label">Enter the 5-digit code from Start</p>
         <div class="code-row">
@@ -504,12 +301,11 @@ body {
       </div>
     </section>
 
-    <!-- MAIN -->
     <section id="mainPanel">
       <div class="role-pill" id="roleLabel">—</div>
 
       <div id="enableCameraBox" class="panel enable-cam-box">
-        <p>Allow camera access and point at the line.<br>Drag the cyan bar to align with the start/finish plane.</p>
+        <p>Allow camera access and point at the line.<br>Drag the cyan bar to align with the plane.</p>
         <button type="button" class="btn btn-primary btn-lg" id="btnEnableCam">Enable Camera</button>
       </div>
 
@@ -526,6 +322,7 @@ body {
       <div class="timer-block">
         <div class="timer" id="timer">0.000</div>
         <div class="timer-unit">seconds</div>
+        <div class="precision-row" id="precisionRow"></div>
         <div class="speed-row hidden" id="speedRow">
           <span id="speedValue">—</span>
           <select id="speedUnit">
@@ -543,8 +340,8 @@ body {
 
       <div class="panel settings hidden" id="settingsBox">
         <div class="setting">
-          <label>Sensitivity <span id="sensitivityValue">18</span></label>
-          <input type="range" id="sensitivitySlider" min="5" max="50" value="18" />
+          <label>Sensitivity <span id="sensitivityValue">16</span></label>
+          <input type="range" id="sensitivitySlider" min="5" max="50" value="16" />
         </div>
         <div class="setting">
           <label>Distance between lines (m)</label>
@@ -553,7 +350,7 @@ body {
         <div id="calibrationPanel" class="cal-panel hidden">
           <label>Motion strength</label>
           <div class="meter-wrap"><div class="meter-bar" id="motionBar"></div></div>
-          <p class="cal-hint">Walk through the detection line. Set sensitivity just above the resting noise level.</p>
+          <p class="cal-hint">Walk through the line. Set sensitivity just above the resting noise.</p>
         </div>
       </div>
 
@@ -573,59 +370,70 @@ body {
 (function () {
   'use strict';
 
-  /* ===================== Config ===================== */
+  /* ============================================================
+     High-precision dual-phone sprint timing
+     ============================================================ */
+
   const CONFIG = {
-    // Motion detection
-    processWidth: 320,          // downscale for speed & consistency
-    requiredFrames: 2,          // consecutive frames above threshold
-    pixelThreshold: 18,         // luminance delta
-    requiredPixels: 28,         // changed samples in band to score high
-    bandRatio: 0.04,            // half-width of detection band
+    processWidth: 400,          // spatial resolution for motion band
+    pixelThreshold: 16,         // luminance delta
+    requiredPixels: 22,         // samples that must change in the band
+    bandRatio: 0.028,           // narrower band = sharper plane
     sampleStep: 2,
-    warmupFrames: 25,
-    cooldownMs: 1200,
-    // Peer
+    warmupFrames: 20,
+    cooldownMs: 900,
+    // Rising-edge: trigger on first frame that crosses threshold after being below
+    // (no multi-frame lag — maximum timing precision)
+    minRaceSec: 0.12,           // reject noise triggers
+    syncSamples: 7,             // multi-sample clock sync
+    syncIntervalMs: 2000,       // continuous re-sync while linked
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
     ]
   };
 
-  /* ===================== State ===================== */
   const state = {
-    role: null,                 // 'start' | 'finish'
+    role: null,
     peer: null,
     conn: null,
     roomCode: null,
     cameraReady: false,
-    armed: false,               // listening for motion
+    armed: false,
     calibrating: false,
-    raceActive: false,          // start has fired, waiting for finish
-    startTimeLocal: null,       // performance.now() when start detected (local clock)
-    confidence: 0,
-    sensitivity: 18,
-    lastFrame: null,            // ImageData from process canvas
+    raceActive: false,
+    // High-res local timestamps (performance.now)
+    startTimeLocal: null,
+    finishTimeLocal: null,
+    // Clock: finish_local ≈ start_local + clockOffset
+    clockOffset: 0,
+    offsetSamples: [],
+    rttMs: null,
+    syncTimer: null,
+    // Motion
+    sensitivity: 16,
+    lastFrame: null,
     framesToSkip: 0,
-    clockOffset: 0,             // finish_local ≈ start_local + offset
-    lineXRatio: 0.5,
+    motionBelow: true,          // for rising-edge detection
     lastTriggerAt: 0,
+    lastFrameTime: 0,           // performance.now of last processed frame
+    prevFrameTime: 0,
+    // History
     history: [],
     distanceM: null,
     wakeLock: null,
     _timerRAF: null,
-    _detectRAF: null
+    _detectRAF: null,
+    _rvfcHandle: null
   };
 
-  /* ===================== DOM ===================== */
   const $ = (id) => document.getElementById(id);
   const video = $('cam');
   const overlay = $('overlay');
   const octx = overlay.getContext('2d');
-  // Offscreen process canvas (fixed size for stable detection)
   const proc = document.createElement('canvas');
   const pctx = proc.getContext('2d', { willReadFrequently: true });
 
-  /* ===================== UI helpers ===================== */
   function setStatus(text, cls) {
     const el = $('statusBar');
     el.textContent = text;
@@ -636,7 +444,9 @@ body {
     const el = $('connBadge');
     if (online) {
       el.className = 'conn-badge online';
-      el.textContent = latencyMs != null ? `Linked · ${Math.round(latencyMs)} ms` : 'Linked';
+      el.textContent = latencyMs != null
+        ? `Linked · ${Math.round(latencyMs)} ms`
+        : 'Linked';
     } else {
       el.className = 'conn-badge offline';
       el.textContent = 'Offline';
@@ -646,10 +456,10 @@ body {
   function flash() {
     const f = $('flash');
     f.classList.add('on');
-    setTimeout(() => f.classList.remove('on'), 100);
+    setTimeout(() => f.classList.remove('on'), 90);
     const line = $('detectLine');
     line.classList.add('active');
-    setTimeout(() => line.classList.remove('active'), 400);
+    setTimeout(() => line.classList.remove('active'), 350);
   }
 
   function beep(freq = 880, ms = 120) {
@@ -685,7 +495,7 @@ body {
     } catch (_) {}
   }
 
-  /* ===================== Pairing ===================== */
+  /* ---------- Pairing ---------- */
   function genCode() {
     return String(Math.floor(10000 + Math.random() * 90000));
   }
@@ -700,33 +510,25 @@ body {
   }
 
   function createStartPeer(attempt = 0) {
-    if (state.peer) {
-      try { state.peer.destroy(); } catch (_) {}
-    }
+    if (state.peer) { try { state.peer.destroy(); } catch (_) {} }
     const code = genCode();
     state.roomCode = code;
-    // Prefix so PeerJS cloud IDs stay unique and readable
-    const peerId = 'st-' + code;
-    state.peer = new Peer(peerId, {
+    state.peer = new Peer('st-' + code, {
       debug: 0,
       config: { iceServers: CONFIG.iceServers }
     });
-
-    state.peer.on('open', (id) => {
+    state.peer.on('open', () => {
       $('roomCodeDisplay').textContent = code;
       setStatus('START — share code', 'waiting');
       $('startHint').textContent = 'Waiting for Finish phone…';
     });
-
     state.peer.on('connection', (c) => {
       state.conn = c;
       c.on('open', () => onConnected());
       c.on('data', handleRemoteMessage);
       c.on('close', onDisconnected);
     });
-
     state.peer.on('error', (err) => {
-      console.error(err);
       if (err.type === 'unavailable-id' && attempt < 8) {
         try { state.peer.destroy(); } catch (_) {}
         createStartPeer(attempt + 1);
@@ -743,26 +545,20 @@ body {
       return;
     }
     state.roomCode = code;
-    if (state.peer) {
-      try { state.peer.destroy(); } catch (_) {}
-    }
+    if (state.peer) { try { state.peer.destroy(); } catch (_) {} }
     state.peer = new Peer({
       debug: 0,
       config: { iceServers: CONFIG.iceServers }
     });
-
     state.peer.on('open', () => {
       setStatus('Connecting…', 'waiting');
-      const hostId = 'st-' + code;
-      state.conn = state.peer.connect(hostId, { reliable: true });
+      state.conn = state.peer.connect('st-' + code, { reliable: true });
       state.conn.on('open', () => onConnected());
       state.conn.on('data', handleRemoteMessage);
       state.conn.on('close', onDisconnected);
       state.conn.on('error', () => setStatus('Connection failed — check code', 'error'));
     });
-
     state.peer.on('error', (err) => {
-      console.error(err);
       setStatus('Error: ' + (err.type || err.message || 'peer'), 'error');
     });
   }
@@ -774,15 +570,8 @@ body {
     $('mainPanel').classList.add('active');
     $('roleLabel').textContent =
       state.role === 'start' ? 'This phone = START line' : 'This phone = FINISH line';
-
-    // Clock sync (start initiates)
-    if (state.role === 'start') {
-      setTimeout(() => {
-        if (state.conn?.open) {
-          state.conn.send({ type: 'sync-ping', t0: performance.now() });
-        }
-      }, 400);
-    }
+    // Begin high-precision multi-sample clock sync
+    beginClockSync();
   }
 
   function onDisconnected() {
@@ -791,52 +580,103 @@ body {
     state.armed = false;
     state.raceActive = false;
     stopLiveTimer();
+    stopClockSync();
   }
 
-  /* ===================== Messaging & clock ===================== */
+  /* ---------- High-precision clock sync ----------
+     Multi-sample median offset. Continuous re-sync tracks drift.
+     Model: finish_local ≈ start_local + clockOffset
+  */
+  function beginClockSync() {
+    state.offsetSamples = [];
+    if (state.role === 'start') {
+      runSyncBurst();
+      stopClockSync();
+      state.syncTimer = setInterval(runSyncBurst, CONFIG.syncIntervalMs);
+    }
+  }
+
+  function stopClockSync() {
+    if (state.syncTimer) {
+      clearInterval(state.syncTimer);
+      state.syncTimer = null;
+    }
+  }
+
+  function runSyncBurst() {
+    if (!state.conn?.open) return;
+    // Fire several pings rapidly; collect samples on pong
+    let sent = 0;
+    const fire = () => {
+      if (sent >= CONFIG.syncSamples || !state.conn?.open) return;
+      state.conn.send({ type: 'sync-ping', t0: performance.now() });
+      sent++;
+      setTimeout(fire, 40);
+    };
+    fire();
+  }
+
+  function median(arr) {
+    if (!arr.length) return 0;
+    const s = [...arr].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+
   function handleRemoteMessage(msg) {
     if (!msg || !msg.type) return;
 
     if (msg.type === 'sync-ping') {
-      // Finish receives: reply with our time
       state.conn.send({ type: 'sync-pong', t0: msg.t0, t1: performance.now() });
     }
 
     if (msg.type === 'sync-pong') {
-      // Start receives: compute RTT & offset so finish_local ≈ start_local + offset
-      // offset ≈ t1 - t0 - rtt/2  →  finish ≈ start + offset
+      // On START: t0 = our send time, t1 = finish receive time, now = our receive time
       const now = performance.now();
       const rtt = now - msg.t0;
-      state.clockOffset = msg.t1 - msg.t0 - rtt / 2;
-      setConnBadge(true, rtt);
-      // Tell finish the offset so both share the same view
-      state.conn.send({ type: 'sync-offset', offset: state.clockOffset, rtt });
+      // Classic Cristian's / NTP-style offset: finish - start ≈ t1 - t0 - rtt/2
+      const offset = msg.t1 - msg.t0 - rtt / 2;
+      state.offsetSamples.push({ offset, rtt });
+      if (state.offsetSamples.length > 21) state.offsetSamples.shift();
+      // Median of recent samples is robust to jitter
+      const offsets = state.offsetSamples.map((s) => s.offset);
+      const rtts = state.offsetSamples.map((s) => s.rtt);
+      state.clockOffset = median(offsets);
+      state.rttMs = median(rtts);
+      setConnBadge(true, state.rttMs);
+      // Push shared offset to finish so both sides agree
+      state.conn.send({
+        type: 'sync-offset',
+        offset: state.clockOffset,
+        rtt: state.rttMs,
+        samples: state.offsetSamples.length
+      });
     }
 
     if (msg.type === 'sync-offset') {
-      // Finish stores offset (finish = start + offset)
       state.clockOffset = msg.offset;
-      setConnBadge(true, msg.rtt);
+      state.rttMs = msg.rtt;
+      setConnBadge(true, state.rttMs);
     }
 
     if (msg.type === 'start') {
-      // Finish receives start event
-      // msg.t is start's performance.now() at trigger
-      // Convert to finish local: start_local + offset
+      // Finish: convert start's performance.now() into finish local time
+      // start_local + offset = finish_local equivalent
       state.startTimeLocal = msg.t + state.clockOffset;
       state.raceActive = true;
+      state.finishTimeLocal = null;
       setStatus('Running…', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
       vibrate([30]);
+      updatePrecisionHint();
     }
 
     if (msg.type === 'finish') {
-      // Start receives finish confirmation (optional UI update)
-      const elapsed = msg.elapsed;
-      if (elapsed != null) {
-        finishRace(elapsed, false);
+      // Start receives authoritative elapsed from finish (finish plane is source of truth)
+      if (msg.elapsed != null) {
+        finishRace(msg.elapsed, false, msg.uncertaintyMs);
       }
     }
 
@@ -845,7 +685,19 @@ body {
     }
   }
 
-  /* ===================== Camera ===================== */
+  function updatePrecisionHint(elapsed, uncertaintyMs) {
+    const row = $('precisionRow');
+    if (!row) return;
+    if (elapsed != null && uncertaintyMs != null) {
+      row.textContent = `±${(uncertaintyMs / 1000).toFixed(3)} s estimated sync error`;
+    } else if (state.rttMs != null) {
+      row.textContent = `Sync RTT ~${Math.round(state.rttMs)} ms · offset locked`;
+    } else {
+      row.textContent = '';
+    }
+  }
+
+  /* ---------- Camera ---------- */
   async function enableCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -853,7 +705,7 @@ body {
           facingMode: { ideal: 'environment' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          frameRate: { ideal: 30 }
+          frameRate: { ideal: 60, min: 24 }  // prefer 60 fps for finer temporal resolution
         },
         audio: false
       });
@@ -873,6 +725,7 @@ body {
       window.addEventListener('resize', resizeOverlay);
       armSystem(true);
       setStatus('Armed', 'armed');
+      updatePrecisionHint();
     } catch (err) {
       console.error(err);
       setStatus('Camera denied — use Safari', 'error');
@@ -892,12 +745,10 @@ body {
     octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* ===================== Detection line drag ===================== */
   function setupLineDrag() {
     let dragging = false;
     const line = $('detectLine');
     const box = $('cameraBox');
-
     const move = (clientX) => {
       const rect = box.getBoundingClientRect();
       let ratio = (clientX - rect.left) / rect.width;
@@ -905,29 +756,25 @@ body {
       state.lineXRatio = ratio;
       line.style.left = (ratio * 100) + '%';
     };
-
     line.addEventListener('pointerdown', (e) => {
       dragging = true;
       line.setPointerCapture(e.pointerId);
       e.preventDefault();
     });
-    line.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      move(e.clientX);
-    });
+    line.addEventListener('pointermove', (e) => { if (dragging) move(e.clientX); });
     line.addEventListener('pointerup', () => { dragging = false; });
     line.addEventListener('pointercancel', () => { dragging = false; });
   }
 
-  /* ===================== Arm / race control ===================== */
+  /* ---------- Arm / race ---------- */
   function armSystem(silent) {
     if (!state.cameraReady) return;
-
     state.armed = true;
     state.calibrating = false;
     state.raceActive = false;
     state.startTimeLocal = null;
-    state.confidence = 0;
+    state.finishTimeLocal = null;
+    state.motionBelow = true;
     state.lastFrame = null;
     state.framesToSkip = CONFIG.warmupFrames;
     state.lastTriggerAt = 0;
@@ -935,13 +782,17 @@ body {
     $('calibrationPanel').classList.add('hidden');
     $('timer').textContent = '0.000';
     $('speedRow').classList.add('hidden');
+    $('precisionRow').textContent = state.rttMs != null
+      ? `Sync RTT ~${Math.round(state.rttMs)} ms · offset locked`
+      : '';
     stopLiveTimer();
 
     if (!silent) {
       setStatus('Armed', 'armed');
       if (state.conn?.open) state.conn.send({ type: 'reset' });
+      // Fresh sync burst right before a run
+      if (state.role === 'start') runSyncBurst();
     }
-
     startDetectLoop();
   }
 
@@ -978,7 +829,7 @@ body {
     }
   }
 
-  function finishRace(elapsedSec, notifyPeer) {
+  function finishRace(elapsedSec, notifyPeer, uncertaintyMs) {
     $('timer').textContent = elapsedSec.toFixed(3);
     setStatus('Finished', 'finished');
     state.armed = false;
@@ -989,9 +840,14 @@ body {
     vibrate([50, 40, 80]);
     updateSpeed(elapsedSec);
     addHistory(elapsedSec);
+    updatePrecisionHint(elapsedSec, uncertaintyMs ?? (state.rttMs != null ? state.rttMs / 2 : null));
 
     if (notifyPeer && state.conn?.open) {
-      state.conn.send({ type: 'finish', elapsed: elapsedSec });
+      state.conn.send({
+        type: 'finish',
+        elapsed: elapsedSec,
+        uncertaintyMs: uncertaintyMs ?? (state.rttMs != null ? state.rttMs / 2 : null)
+      });
     }
   }
 
@@ -1012,12 +868,11 @@ body {
   }
 
   function addHistory(elapsedSec) {
-    const entry = {
+    state.history.unshift({
       t: elapsedSec,
       at: new Date().toLocaleTimeString(),
       speed: state.distanceM ? state.distanceM / elapsedSec : null
-    };
-    state.history.unshift(entry);
+    });
     if (state.history.length > 40) state.history.pop();
     renderHistory();
   }
@@ -1041,27 +896,53 @@ body {
     });
   }
 
-  /* ===================== Motion detection ===================== */
+  /* ---------- Motion detection (frame-accurate) ---------- */
   function startDetectLoop() {
-    if (state._detectRAF) cancelAnimationFrame(state._detectRAF);
-    const loop = () => {
-      if (state.armed || state.calibrating) {
-        processFrame();
-        state._detectRAF = requestAnimationFrame(loop);
-      } else {
-        state._detectRAF = null;
-      }
-    };
-    state._detectRAF = requestAnimationFrame(loop);
+    stopDetectLoop();
+    // Prefer requestVideoFrameCallback for timestamps aligned to actual camera frames
+    if (typeof video.requestVideoFrameCallback === 'function') {
+      const onFrame = (now, metadata) => {
+        if (state.armed || state.calibrating) {
+          // metadata.mediaTime is seconds of media timeline; now is DOMHighResTimeStamp
+          processFrame(now, metadata);
+          state._rvfcHandle = video.requestVideoFrameCallback(onFrame);
+        } else {
+          state._rvfcHandle = null;
+        }
+      };
+      state._rvfcHandle = video.requestVideoFrameCallback(onFrame);
+    } else {
+      const loop = () => {
+        if (state.armed || state.calibrating) {
+          processFrame(performance.now(), null);
+          state._detectRAF = requestAnimationFrame(loop);
+        } else {
+          state._detectRAF = null;
+        }
+      };
+      state._detectRAF = requestAnimationFrame(loop);
+    }
   }
 
-  function processFrame() {
+  function stopDetectLoop() {
+    if (state._detectRAF) {
+      cancelAnimationFrame(state._detectRAF);
+      state._detectRAF = null;
+    }
+    if (state._rvfcHandle != null && typeof video.cancelVideoFrameCallback === 'function') {
+      try { video.cancelVideoFrameCallback(state._rvfcHandle); } catch (_) {}
+      state._rvfcHandle = null;
+    }
+  }
+
+  function processFrame(frameNow, metadata) {
     if (video.readyState < 2 || !video.videoWidth) return;
+
+    state.prevFrameTime = state.lastFrameTime;
+    state.lastFrameTime = frameNow;
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-
-    // Fixed-width process buffer for consistent sensitivity
     const pw = CONFIG.processWidth;
     const ph = Math.round(pw * (vh / vw));
     if (proc.width !== pw || proc.height !== ph) {
@@ -1080,6 +961,7 @@ body {
     if (state.framesToSkip > 0) {
       state.framesToSkip--;
       state.lastFrame = frame;
+      state.motionBelow = true;
       return;
     }
 
@@ -1092,20 +974,21 @@ body {
       }
 
       if (state.armed) {
-        const now = performance.now();
-        if (now - state.lastTriggerAt < CONFIG.cooldownMs) {
-          state.confidence = 0;
-        } else if (motion >= state.sensitivity) {
-          state.confidence++;
-        } else {
-          state.confidence = Math.max(0, state.confidence - 1);
-        }
+        const now = frameNow;
+        const above = motion >= state.sensitivity;
 
-        if (state.confidence >= CONFIG.requiredFrames) {
-          state.confidence = 0;
-          state.lastTriggerAt = now;
-          onMotionTriggered();
+        // Rising-edge: was below threshold, now above → exact crossing moment
+        if (now - state.lastTriggerAt >= CONFIG.cooldownMs) {
+          if (above && state.motionBelow) {
+            state.lastTriggerAt = now;
+            // Sub-frame estimate: crossing occurred between previous and current frame
+            // Attribute to midpoint for lower expected error (±½ frame)
+            const dt = state.prevFrameTime > 0 ? (now - state.prevFrameTime) : 16.67;
+            const estimatedCrossTime = now - dt * 0.5;
+            onMotionTriggered(estimatedCrossTime);
+          }
         }
+        state.motionBelow = !above;
       }
     }
 
@@ -1136,33 +1019,38 @@ body {
     return Math.min(100, Math.round((changed / need) * 100));
   }
 
-  function onMotionTriggered() {
+  function onMotionTriggered(eventTime) {
+    const t = eventTime != null ? eventTime : performance.now();
+
     if (state.role === 'start') {
-      // Only fire start once per arm
       if (state.raceActive || state.startTimeLocal != null) return;
-      state.startTimeLocal = performance.now();
+      state.startTimeLocal = t;
       state.raceActive = true;
       setStatus('Start detected — running', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
       vibrate([30]);
+      // Send start's high-res timestamp immediately
       if (state.conn?.open) {
-        // Send start's local timestamp; finish converts with clockOffset
         state.conn.send({ type: 'start', t: state.startTimeLocal });
       }
     } else if (state.role === 'finish') {
-      // Only finish if we already have a start time
       if (!state.raceActive || state.startTimeLocal == null) return;
-      const now = performance.now();
-      const elapsed = (now - state.startTimeLocal) / 1000;
-      // Ignore impossibly short times (noise)
-      if (elapsed < 0.15) return;
-      finishRace(elapsed, true);
+      state.finishTimeLocal = t;
+      const elapsed = (state.finishTimeLocal - state.startTimeLocal) / 1000;
+      if (elapsed < CONFIG.minRaceSec) return;
+      // Uncertainty ≈ half median RTT (clock sync residual) + half frame interval
+      const frameUnc = state.prevFrameTime > 0
+        ? (state.lastFrameTime - state.prevFrameTime) / 2
+        : 8;
+      const syncUnc = state.rttMs != null ? state.rttMs / 2 : 15;
+      const uncertaintyMs = Math.sqrt(frameUnc * frameUnc + syncUnc * syncUnc);
+      finishRace(elapsed, true, uncertaintyMs);
     }
   }
 
-  /* ===================== Bind UI ===================== */
+  /* ---------- Bind ---------- */
   $('btnStart').addEventListener('click', () => chooseRole('start'));
   $('btnFinish').addEventListener('click', () => chooseRole('finish'));
   $('btnJoin').addEventListener('click', joinAsFinish);
@@ -1172,28 +1060,23 @@ body {
   $('btnEnableCam').addEventListener('click', enableCamera);
   $('btnArm').addEventListener('click', () => armSystem(false));
   $('btnCalibrate').addEventListener('click', toggleCalibration);
-
   $('sensitivitySlider').addEventListener('input', (e) => {
     state.sensitivity = Number(e.target.value);
     $('sensitivityValue').textContent = state.sensitivity;
   });
-
   $('distanceInput').addEventListener('change', () => {
     const t = parseFloat($('timer').textContent);
     if (t > 0) updateSpeed(t);
   });
-
   $('speedUnit').addEventListener('change', () => {
     const t = parseFloat($('timer').textContent);
     if (t > 0) updateSpeed(t);
   });
-
   $('btnClearHistory').addEventListener('click', () => {
     state.history = [];
     renderHistory();
   });
 
-  // Boot
   setConnBadge(false);
 })();
 </script>
