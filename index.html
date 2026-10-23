@@ -266,9 +266,7 @@ body {
       </div>
       <div id="connBadge" class="conn-badge offline">Offline</div>
     </header>
-
     <div id="statusBar" class="status waiting">Choose role to begin</div>
-
     <section id="pairingPanel" class="panel">
       <div class="note">
         <strong>Setup:</strong> Open on <b>two iPhones</b> (Safari).  
@@ -300,15 +298,12 @@ body {
         <button type="button" class="btn btn-primary btn-lg" id="btnJoin" style="margin-top:12px">Connect</button>
       </div>
     </section>
-
     <section id="mainPanel">
       <div class="role-pill" id="roleLabel">—</div>
-
       <div id="enableCameraBox" class="panel enable-cam-box">
         <p>Allow camera access and point at the line.<br>Drag the cyan bar to align with the plane.</p>
         <button type="button" class="btn btn-primary btn-lg" id="btnEnableCam">Enable Camera</button>
       </div>
-
       <div class="camera-box hidden" id="cameraBox">
         <video id="cam" autoplay muted playsinline></video>
         <canvas id="overlay"></canvas>
@@ -318,7 +313,6 @@ body {
         </div>
         <div class="flash" id="flash"></div>
       </div>
-
       <div class="timer-block">
         <div class="timer" id="timer">0.000</div>
         <div class="timer-unit">seconds</div>
@@ -332,16 +326,14 @@ body {
           </select>
         </div>
       </div>
-
       <div class="controls hidden" id="controlButtons">
         <button type="button" class="btn btn-primary btn-lg" id="btnArm">Arm / Reset</button>
         <button type="button" class="btn btn-ghost" id="btnCalibrate">Calibrate</button>
       </div>
-
       <div class="panel settings hidden" id="settingsBox">
         <div class="setting">
-          <label>Sensitivity <span id="sensitivityValue">16</span></label>
-          <input type="range" id="sensitivitySlider" min="5" max="50" value="16" />
+          <label>Sensitivity <span id="sensitivityValue">12</span></label>
+          <input type="range" id="sensitivitySlider" min="4" max="40" value="12" />
         </div>
         <div class="setting">
           <label>Distance between lines (m)</label>
@@ -353,7 +345,6 @@ body {
           <p class="cal-hint">Walk through the line. Set sensitivity just above the resting noise.</p>
         </div>
       </div>
-
       <div class="panel history hidden" id="historyPanel">
         <div class="history-header">
           <h2>Session times</h2>
@@ -365,28 +356,23 @@ body {
       </div>
     </section>
   </div>
-
 <script>
 (function () {
   'use strict';
-
   /* ============================================================
      High-precision dual-phone sprint timing
      ============================================================ */
-
   const CONFIG = {
-    processWidth: 400,          // spatial resolution for motion band
-    pixelThreshold: 16,         // luminance delta
-    requiredPixels: 22,         // samples that must change in the band
-    bandRatio: 0.028,           // narrower band = sharper plane
+    processWidth: 320,          // spatial resolution for motion band
+    pixelThreshold: 18,         // luminance delta per pixel
+    requiredPixels: 14,         // samples that must change in the band
+    bandRatio: 0.04,            // detection band width relative to frame
     sampleStep: 2,
-    warmupFrames: 20,
-    cooldownMs: 900,
-    // Rising-edge: trigger on first frame that crosses threshold after being below
-    // (no multi-frame lag — maximum timing precision)
-    minRaceSec: 0.12,           // reject noise triggers
-    syncSamples: 7,             // multi-sample clock sync
-    syncIntervalMs: 2000,       // continuous re-sync while linked
+    warmupFrames: 12,
+    cooldownMs: 700,
+    minRaceSec: 0.15,           // reject noise triggers
+    syncSamples: 7,
+    syncIntervalMs: 2500,
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
@@ -402,23 +388,20 @@ body {
     armed: false,
     calibrating: false,
     raceActive: false,
-    // High-res local timestamps (performance.now)
     startTimeLocal: null,
     finishTimeLocal: null,
-    // Clock: finish_local ≈ start_local + clockOffset
     clockOffset: 0,
     offsetSamples: [],
     rttMs: null,
     syncTimer: null,
-    // Motion
-    sensitivity: 16,
+    sensitivity: 12,
+    lineXRatio: 0.5,            // FIXED: was never initialized → NaN band → no triggers
     lastFrame: null,
     framesToSkip: 0,
-    motionBelow: true,          // for rising-edge detection
+    motionBelow: true,
     lastTriggerAt: 0,
-    lastFrameTime: 0,           // performance.now of last processed frame
+    lastFrameTime: 0,
     prevFrameTime: 0,
-    // History
     history: [],
     distanceM: null,
     wakeLock: null,
@@ -570,7 +553,6 @@ body {
     $('mainPanel').classList.add('active');
     $('roleLabel').textContent =
       state.role === 'start' ? 'This phone = START line' : 'This phone = FINISH line';
-    // Begin high-precision multi-sample clock sync
     beginClockSync();
   }
 
@@ -583,10 +565,7 @@ body {
     stopClockSync();
   }
 
-  /* ---------- High-precision clock sync ----------
-     Multi-sample median offset. Continuous re-sync tracks drift.
-     Model: finish_local ≈ start_local + clockOffset
-  */
+  /* ---------- High-precision clock sync ---------- */
   function beginClockSync() {
     state.offsetSamples = [];
     if (state.role === 'start') {
@@ -605,7 +584,6 @@ body {
 
   function runSyncBurst() {
     if (!state.conn?.open) return;
-    // Fire several pings rapidly; collect samples on pong
     let sent = 0;
     const fire = () => {
       if (sent >= CONFIG.syncSamples || !state.conn?.open) return;
@@ -631,20 +609,16 @@ body {
     }
 
     if (msg.type === 'sync-pong') {
-      // On START: t0 = our send time, t1 = finish receive time, now = our receive time
       const now = performance.now();
       const rtt = now - msg.t0;
-      // Classic Cristian's / NTP-style offset: finish - start ≈ t1 - t0 - rtt/2
       const offset = msg.t1 - msg.t0 - rtt / 2;
       state.offsetSamples.push({ offset, rtt });
       if (state.offsetSamples.length > 21) state.offsetSamples.shift();
-      // Median of recent samples is robust to jitter
       const offsets = state.offsetSamples.map((s) => s.offset);
       const rtts = state.offsetSamples.map((s) => s.rtt);
       state.clockOffset = median(offsets);
       state.rttMs = median(rtts);
       setConnBadge(true, state.rttMs);
-      // Push shared offset to finish so both sides agree
       state.conn.send({
         type: 'sync-offset',
         offset: state.clockOffset,
@@ -660,21 +634,22 @@ body {
     }
 
     if (msg.type === 'start') {
-      // Finish: convert start's performance.now() into finish local time
-      // start_local + offset = finish_local equivalent
+      // Finish phone: convert start timestamp into local time
       state.startTimeLocal = msg.t + state.clockOffset;
       state.raceActive = true;
       state.finishTimeLocal = null;
+      state.armed = true;          // ensure finish stays listening
       setStatus('Running…', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
       vibrate([30]);
       updatePrecisionHint();
+      // Keep detection loop alive on finish
+      if (!state._rvfcHandle && !state._detectRAF) startDetectLoop();
     }
 
     if (msg.type === 'finish') {
-      // Start receives authoritative elapsed from finish (finish plane is source of truth)
       if (msg.elapsed != null) {
         finishRace(msg.elapsed, false, msg.uncertaintyMs);
       }
@@ -705,22 +680,22 @@ body {
           facingMode: { ideal: 'environment' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          frameRate: { ideal: 60, min: 24 }  // prefer 60 fps for finer temporal resolution
+          frameRate: { ideal: 60, min: 24 }
         },
         audio: false
       });
       video.srcObject = stream;
       await video.play();
       state.cameraReady = true;
-
       $('enableCameraBox').classList.add('hidden');
       $('cameraBox').classList.remove('hidden');
       $('controlButtons').classList.remove('hidden');
       $('settingsBox').classList.remove('hidden');
       $('historyPanel').classList.remove('hidden');
-
       await requestWakeLock();
       setupLineDrag();
+      // Ensure visual line matches state
+      $('detectLine').style.left = (state.lineXRatio * 100) + '%';
       resizeOverlay();
       window.addEventListener('resize', resizeOverlay);
       armSystem(true);
@@ -778,7 +753,6 @@ body {
     state.lastFrame = null;
     state.framesToSkip = CONFIG.warmupFrames;
     state.lastTriggerAt = 0;
-
     $('calibrationPanel').classList.add('hidden');
     $('timer').textContent = '0.000';
     $('speedRow').classList.add('hidden');
@@ -786,11 +760,9 @@ body {
       ? `Sync RTT ~${Math.round(state.rttMs)} ms · offset locked`
       : '';
     stopLiveTimer();
-
     if (!silent) {
       setStatus('Armed', 'armed');
       if (state.conn?.open) state.conn.send({ type: 'reset' });
-      // Fresh sync burst right before a run
       if (state.role === 'start') runSyncBurst();
     }
     startDetectLoop();
@@ -841,7 +813,6 @@ body {
     updateSpeed(elapsedSec);
     addHistory(elapsedSec);
     updatePrecisionHint(elapsedSec, uncertaintyMs ?? (state.rttMs != null ? state.rttMs / 2 : null));
-
     if (notifyPeer && state.conn?.open) {
       state.conn.send({
         type: 'finish',
@@ -896,14 +867,15 @@ body {
     });
   }
 
-  /* ---------- Motion detection (frame-accurate) ---------- */
+  /* ---------- Motion detection ---------- */
   function startDetectLoop() {
     stopDetectLoop();
-    // Prefer requestVideoFrameCallback for timestamps aligned to actual camera frames
     if (typeof video.requestVideoFrameCallback === 'function') {
       const onFrame = (now, metadata) => {
-        if (state.armed || state.calibrating) {
-          // metadata.mediaTime is seconds of media timeline; now is DOMHighResTimeStamp
+        // Keep looping while we need to detect (armed, calibrating, or race running on finish)
+        const needDetect = state.armed || state.calibrating ||
+          (state.role === 'finish' && state.raceActive);
+        if (needDetect) {
           processFrame(now, metadata);
           state._rvfcHandle = video.requestVideoFrameCallback(onFrame);
         } else {
@@ -913,7 +885,9 @@ body {
       state._rvfcHandle = video.requestVideoFrameCallback(onFrame);
     } else {
       const loop = () => {
-        if (state.armed || state.calibrating) {
+        const needDetect = state.armed || state.calibrating ||
+          (state.role === 'finish' && state.raceActive);
+        if (needDetect) {
           processFrame(performance.now(), null);
           state._detectRAF = requestAnimationFrame(loop);
         } else {
@@ -973,16 +947,16 @@ body {
         if (bar) bar.style.width = Math.min(100, motion) + '%';
       }
 
-      if (state.armed) {
+      // Detect on both armed and (for finish) while race is active
+      const shouldDetect = state.armed || (state.role === 'finish' && state.raceActive);
+      if (shouldDetect) {
         const now = frameNow;
         const above = motion >= state.sensitivity;
 
-        // Rising-edge: was below threshold, now above → exact crossing moment
         if (now - state.lastTriggerAt >= CONFIG.cooldownMs) {
+          // Rising edge: was below, now above → athlete crossed the plane
           if (above && state.motionBelow) {
             state.lastTriggerAt = now;
-            // Sub-frame estimate: crossing occurred between previous and current frame
-            // Attribute to midpoint for lower expected error (±½ frame)
             const dt = state.prevFrameTime > 0 ? (now - state.prevFrameTime) : 16.67;
             const estimatedCrossTime = now - dt * 0.5;
             onMotionTriggered(estimatedCrossTime);
@@ -996,8 +970,12 @@ body {
   }
 
   function motionAtLine(cur, prev, w, h) {
-    const lineX = Math.floor(w * state.lineXRatio);
-    const band = Math.max(2, Math.floor(w * CONFIG.bandRatio));
+    // Guard against uninitialized / bad ratio
+    const ratio = (typeof state.lineXRatio === 'number' && isFinite(state.lineXRatio))
+      ? state.lineXRatio
+      : 0.5;
+    const lineX = Math.floor(w * ratio);
+    const band = Math.max(3, Math.floor(w * CONFIG.bandRatio));
     const step = CONFIG.sampleStep;
     let changed = 0;
     const need = CONFIG.requiredPixels;
@@ -1023,6 +1001,7 @@ body {
     const t = eventTime != null ? eventTime : performance.now();
 
     if (state.role === 'start') {
+      // Only fire start once per arm
       if (state.raceActive || state.startTimeLocal != null) return;
       state.startTimeLocal = t;
       state.raceActive = true;
@@ -1031,16 +1010,16 @@ body {
       flash();
       beep(660, 90);
       vibrate([30]);
-      // Send start's high-res timestamp immediately
       if (state.conn?.open) {
         state.conn.send({ type: 'start', t: state.startTimeLocal });
       }
     } else if (state.role === 'finish') {
+      // Must have received the start event first
       if (!state.raceActive || state.startTimeLocal == null) return;
       state.finishTimeLocal = t;
       const elapsed = (state.finishTimeLocal - state.startTimeLocal) / 1000;
       if (elapsed < CONFIG.minRaceSec) return;
-      // Uncertainty ≈ half median RTT (clock sync residual) + half frame interval
+
       const frameUnc = state.prevFrameTime > 0
         ? (state.lastFrameTime - state.prevFrameTime) / 2
         : 8;
