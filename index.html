@@ -639,14 +639,19 @@ body {
       state.raceActive = true;
       state.finishTimeLocal = null;
       state.armed = true;          // ensure finish stays listening
+      // CRITICAL: reset rising-edge detector so the finish crossing
+      // is guaranteed to be seen even if motion was already "above"
+      // from earlier movement / noise while waiting
+      state.motionBelow = true;
+      state.lastTriggerAt = 0;
       setStatus('Running…', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
       vibrate([30]);
       updatePrecisionHint();
-      // Keep detection loop alive on finish
-      if (!state._rvfcHandle && !state._detectRAF) startDetectLoop();
+      // Always (re)start detection loop so finish is listening
+      startDetectLoop();
     }
 
     if (msg.type === 'finish') {
