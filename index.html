@@ -7,11 +7,16 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#070b10" />
-  <title>Sprint Timer Pro</title>
+  <title>Sprint Timer Pro — Pose Edition</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- TensorFlow.js + MoveNet for high-precision pose -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
   <style>
 :root {
   --bg: #070b10;
@@ -84,6 +89,7 @@ body {
 .status.finished { background: rgba(255, 77, 109, 0.28); color: #ff8a9a; }
 .status.calibrating { background: rgba(41, 121, 255, 0.28); color: #82b1ff; }
 .status.error { background: rgba(255, 77, 109, 0.35); color: #ffcdd2; }
+.status.loading { background: rgba(0, 229, 255, 0.18); color: var(--accent); }
 .panel {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px; backdrop-filter: blur(12px);
@@ -187,6 +193,16 @@ body {
   pointer-events: none; z-index: 4; transition: opacity .05s;
 }
 .flash.on { opacity: 0.55; }
+.pose-hud {
+  position: absolute; left: 8px; bottom: 8px; right: 8px;
+  display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; pointer-events: none;
+}
+.pose-chip {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+  background: rgba(0,0,0,0.65); color: var(--muted); backdrop-filter: blur(4px);
+}
+.pose-chip.ok { color: var(--green); }
+.pose-chip.warn { color: var(--amber); }
 .timer-block { text-align: center; padding: 8px 0 4px; }
 .timer {
   font-family: var(--mono); font-size: 56px; font-weight: 700;
@@ -252,6 +268,9 @@ body {
 .enable-cam-box { text-align: center; padding: 28px 16px; }
 .enable-cam-box p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 .hidden { display: none !important; }
+.model-status {
+  font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px;
+}
   </style>
 </head>
 <body>
@@ -261,7 +280,7 @@ body {
         <div class="logo">ST</div>
         <div>
           <h1>Sprint Timer Pro</h1>
-          <p class="tagline">High-precision dual-phone timing</p>
+          <p class="tagline">Pose-based dual-phone timing · laser-grade</p>
         </div>
       </div>
       <div id="connBadge" class="conn-badge offline">Offline</div>
@@ -271,7 +290,8 @@ body {
       <div class="note">
         <strong>Setup:</strong> Open on <b>two iPhones</b> (Safari).  
         One is <b>START</b>, one is <b>FINISH</b>. Share the code, enable cameras, arm, then run.  
-        Mount phones securely and keep the detection line perpendicular to the run direction.
+        Mount phones sideways for a <b>true lateral view</b> of the runner.  
+        The timer triggers when the <b>hip</b> crosses the cyan plane (tracked with full body pose).
       </div>
       <div class="role-row">
         <button class="role-btn" id="btnStart" type="button">
@@ -301,17 +321,25 @@ body {
     <section id="mainPanel">
       <div class="role-pill" id="roleLabel">—</div>
       <div id="enableCameraBox" class="panel enable-cam-box">
-        <p>Allow camera access and point at the line.<br>Drag the cyan bar to align with the plane.</p>
-        <button type="button" class="btn btn-primary btn-lg" id="btnEnableCam">Enable Camera</button>
+        <p>Allow camera access and point at the line.<br>
+           Position for a clear <b>side view</b> of the runner.<br>
+           Drag the cyan bar to align with the timing plane.</p>
+        <button type="button" class="btn btn-primary btn-lg" id="btnEnableCam">Enable Camera + AI Pose</button>
+        <p class="model-status" id="modelStatus">MoveNet Lightning will load on first use</p>
       </div>
       <div class="camera-box hidden" id="cameraBox">
         <video id="cam" autoplay muted playsinline></video>
         <canvas id="overlay"></canvas>
         <div class="detect-line" id="detectLine">
           <div class="line-handle"></div>
-          <div class="line-label">DETECT</div>
+          <div class="line-label">HIP PLANE</div>
         </div>
         <div class="flash" id="flash"></div>
+        <div class="pose-hud" id="poseHud">
+          <span class="pose-chip" id="chipPose">Pose: —</span>
+          <span class="pose-chip" id="chipHip">Hip: —</span>
+          <span class="pose-chip" id="chipFps">— fps</span>
+        </div>
       </div>
       <div class="timer-block">
         <div class="timer" id="timer">0.000</div>
@@ -332,17 +360,17 @@ body {
       </div>
       <div class="panel settings hidden" id="settingsBox">
         <div class="setting">
-          <label>Sensitivity <span id="sensitivityValue">12</span></label>
-          <input type="range" id="sensitivitySlider" min="4" max="40" value="12" />
+          <label>Min keypoint confidence <span id="minScoreValue">0.35</span></label>
+          <input type="range" id="minScoreSlider" min="0.15" max="0.70" step="0.05" value="0.35" />
         </div>
         <div class="setting">
           <label>Distance between lines (m)</label>
           <input type="number" id="distanceInput" min="1" max="400" step="0.1" placeholder="e.g. 40" inputmode="decimal" />
         </div>
         <div id="calibrationPanel" class="cal-panel hidden">
-          <label>Motion strength</label>
+          <label>Hip motion strength (relative)</label>
           <div class="meter-wrap"><div class="meter-bar" id="motionBar"></div></div>
-          <p class="cal-hint">Walk through the line. Set sensitivity just above the resting noise.</p>
+          <p class="cal-hint">Walk through the line in lateral view. The system uses hip position + velocity for sub-frame accuracy. Raise min confidence if false triggers occur.</p>
         </div>
       </div>
       <div class="panel history hidden" id="historyPanel">
@@ -359,25 +387,52 @@ body {
 <script>
 (function () {
   'use strict';
+
   /* ============================================================
-     High-precision dual-phone sprint timing
+     Sprint Timer Pro — Pose Edition
+     High-precision dual-phone timing using MoveNet hip tracking
      ============================================================ */
+
   const CONFIG = {
-    processWidth: 320,          // spatial resolution for motion band
-    pixelThreshold: 18,         // luminance delta per pixel
-    requiredPixels: 14,         // samples that must change in the band
-    bandRatio: 0.04,            // detection band width relative to frame
-    sampleStep: 2,
-    warmupFrames: 12,
-    cooldownMs: 700,
-    minRaceSec: 0.15,           // reject noise triggers
+    // MoveNet
+    modelType: 'SINGLEPOSE_LIGHTNING', // fastest real-time on mobile
+    minPoseScore: 0.25,
+    // Timing
+    cooldownMs: 600,
+    minRaceSec: 0.12,
+    // Sync
     syncSamples: 7,
     syncIntervalMs: 2500,
+    // Visual
+    skeletonLineWidth: 3,
+    keypointRadius: 4,
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
     ]
   };
+
+  // COCO keypoint indices used by MoveNet
+  const KP = {
+    nose: 0,
+    leftShoulder: 5, rightShoulder: 6,
+    leftElbow: 7, rightElbow: 8,
+    leftWrist: 9, rightWrist: 10,
+    leftHip: 11, rightHip: 12,
+    leftKnee: 13, rightKnee: 14,
+    leftAnkle: 15, rightAnkle: 16
+  };
+
+  // Skeleton connections for drawing
+  const SKELETON = [
+    [KP.leftShoulder, KP.rightShoulder],
+    [KP.leftShoulder, KP.leftElbow], [KP.leftElbow, KP.leftWrist],
+    [KP.rightShoulder, KP.rightElbow], [KP.rightElbow, KP.rightWrist],
+    [KP.leftShoulder, KP.leftHip], [KP.rightShoulder, KP.rightHip],
+    [KP.leftHip, KP.rightHip],
+    [KP.leftHip, KP.leftKnee], [KP.leftKnee, KP.leftAnkle],
+    [KP.rightHip, KP.rightKnee], [KP.rightKnee, KP.rightAnkle]
+  ];
 
   const state = {
     role: null,
@@ -385,6 +440,8 @@ body {
     conn: null,
     roomCode: null,
     cameraReady: false,
+    detector: null,
+    modelReady: false,
     armed: false,
     calibrating: false,
     raceActive: false,
@@ -394,28 +451,27 @@ body {
     offsetSamples: [],
     rttMs: null,
     syncTimer: null,
-    sensitivity: 12,
-    lineXRatio: 0.5,            // FIXED: was never initialized → NaN band → no triggers
-    lastFrame: null,
-    framesToSkip: 0,
-    motionBelow: true,
+    minScore: 0.35,
+    lineXRatio: 0.5,
+    lastHipX: null,
+    lastHipTime: 0,
     lastTriggerAt: 0,
-    lastFrameTime: 0,
-    prevFrameTime: 0,
     history: [],
     distanceM: null,
     wakeLock: null,
     _timerRAF: null,
     _detectRAF: null,
-    _rvfcHandle: null
+    _rvfcHandle: null,
+    fps: 0,
+    frameCount: 0,
+    fpsTimer: 0,
+    lastPose: null
   };
 
   const $ = (id) => document.getElementById(id);
   const video = $('cam');
   const overlay = $('overlay');
   const octx = overlay.getContext('2d');
-  const proc = document.createElement('canvas');
-  const pctx = proc.getContext('2d', { willReadFrequently: true });
 
   function setStatus(text, cls) {
     const el = $('statusBar');
@@ -634,23 +690,17 @@ body {
     }
 
     if (msg.type === 'start') {
-      // Finish phone: convert start timestamp into local time
       state.startTimeLocal = msg.t + state.clockOffset;
       state.raceActive = true;
       state.finishTimeLocal = null;
-      state.armed = true;          // ensure finish stays listening
-      // CRITICAL: reset rising-edge detector so the finish crossing
-      // is guaranteed to be seen even if motion was already "above"
-      // from earlier movement / noise while waiting
-      state.motionBelow = true;
-      state.lastTriggerAt = 0;
+      state.armed = true;
+      state.lastHipX = null; // force fresh edge detection
       setStatus('Running…', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
       vibrate([30]);
       updatePrecisionHint();
-      // Always (re)start detection loop so finish is listening
       startDetectLoop();
     }
 
@@ -669,17 +719,45 @@ body {
     const row = $('precisionRow');
     if (!row) return;
     if (elapsed != null && uncertaintyMs != null) {
-      row.textContent = `±${(uncertaintyMs / 1000).toFixed(3)} s estimated sync error`;
+      row.textContent = `±${(uncertaintyMs / 1000).toFixed(3)} s estimated (pose + sync)`;
     } else if (state.rttMs != null) {
-      row.textContent = `Sync RTT ~${Math.round(state.rttMs)} ms · offset locked`;
+      row.textContent = `Sync RTT ~${Math.round(state.rttMs)} ms · hip plane locked`;
     } else {
       row.textContent = '';
     }
   }
 
-  /* ---------- Camera ---------- */
+  /* ---------- Camera + Model ---------- */
+  async function loadDetector() {
+    if (state.detector) return state.detector;
+    setStatus('Loading MoveNet AI…', 'loading');
+    $('modelStatus').textContent = 'Downloading MoveNet Lightning…';
+    try {
+      await tf.setBackend('webgl');
+      await tf.ready();
+      const detectorConfig = {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        enableSmoothing: true
+      };
+      state.detector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        detectorConfig
+      );
+      state.modelReady = true;
+      $('modelStatus').textContent = 'MoveNet Lightning ready';
+      return state.detector;
+    } catch (err) {
+      console.error(err);
+      setStatus('Model load failed', 'error');
+      $('modelStatus').textContent = 'Failed to load model: ' + (err.message || err);
+      throw err;
+    }
+  }
+
   async function enableCamera() {
     try {
+      $('btnEnableCam').disabled = true;
+      $('modelStatus').textContent = 'Requesting camera…';
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
@@ -691,6 +769,9 @@ body {
       });
       video.srcObject = stream;
       await video.play();
+
+      await loadDetector();
+
       state.cameraReady = true;
       $('enableCameraBox').classList.add('hidden');
       $('cameraBox').classList.remove('hidden');
@@ -699,17 +780,17 @@ body {
       $('historyPanel').classList.remove('hidden');
       await requestWakeLock();
       setupLineDrag();
-      // Ensure visual line matches state
       $('detectLine').style.left = (state.lineXRatio * 100) + '%';
       resizeOverlay();
       window.addEventListener('resize', resizeOverlay);
       armSystem(true);
-      setStatus('Armed', 'armed');
+      setStatus('Armed — lateral view ready', 'armed');
       updatePrecisionHint();
     } catch (err) {
       console.error(err);
-      setStatus('Camera denied — use Safari', 'error');
-      alert('Camera error: ' + err.message + '\n\nOn iPhone open this page in Safari and allow camera access.');
+      $('btnEnableCam').disabled = false;
+      setStatus('Camera / model error', 'error');
+      alert('Error: ' + err.message + '\n\nOn iPhone open this page in Safari and allow camera access. A modern iPhone is recommended for real-time pose.');
     }
   }
 
@@ -748,21 +829,20 @@ body {
 
   /* ---------- Arm / race ---------- */
   function armSystem(silent) {
-    if (!state.cameraReady) return;
+    if (!state.cameraReady || !state.modelReady) return;
     state.armed = true;
     state.calibrating = false;
     state.raceActive = false;
     state.startTimeLocal = null;
     state.finishTimeLocal = null;
-    state.motionBelow = true;
-    state.lastFrame = null;
-    state.framesToSkip = CONFIG.warmupFrames;
+    state.lastHipX = null;
+    state.lastHipTime = 0;
     state.lastTriggerAt = 0;
     $('calibrationPanel').classList.add('hidden');
     $('timer').textContent = '0.000';
     $('speedRow').classList.add('hidden');
     $('precisionRow').textContent = state.rttMs != null
-      ? `Sync RTT ~${Math.round(state.rttMs)} ms · offset locked`
+      ? `Sync RTT ~${Math.round(state.rttMs)} ms · hip plane locked`
       : '';
     stopLiveTimer();
     if (!silent) {
@@ -872,16 +952,17 @@ body {
     });
   }
 
-  /* ---------- Motion detection ---------- */
+  /* ---------- Pose detection core ---------- */
   function startDetectLoop() {
     stopDetectLoop();
+    if (!state.detector) return;
+
     if (typeof video.requestVideoFrameCallback === 'function') {
       const onFrame = (now, metadata) => {
-        // Keep looping while we need to detect (armed, calibrating, or race running on finish)
         const needDetect = state.armed || state.calibrating ||
           (state.role === 'finish' && state.raceActive);
         if (needDetect) {
-          processFrame(now, metadata);
+          processPoseFrame(now);
           state._rvfcHandle = video.requestVideoFrameCallback(onFrame);
         } else {
           state._rvfcHandle = null;
@@ -893,7 +974,7 @@ body {
         const needDetect = state.armed || state.calibrating ||
           (state.role === 'finish' && state.raceActive);
         if (needDetect) {
-          processFrame(performance.now(), null);
+          processPoseFrame(performance.now());
           state._detectRAF = requestAnimationFrame(loop);
         } else {
           state._detectRAF = null;
@@ -914,103 +995,212 @@ body {
     }
   }
 
-  function processFrame(frameNow, metadata) {
-    if (video.readyState < 2 || !video.videoWidth) return;
+  async function processPoseFrame(frameNow) {
+    if (video.readyState < 2 || !video.videoWidth || !state.detector) return;
 
-    state.prevFrameTime = state.lastFrameTime;
-    state.lastFrameTime = frameNow;
+    // FPS counter
+    state.frameCount++;
+    if (frameNow - state.fpsTimer > 1000) {
+      state.fps = state.frameCount;
+      state.frameCount = 0;
+      state.fpsTimer = frameNow;
+      const fpsEl = $('chipFps');
+      if (fpsEl) fpsEl.textContent = state.fps + ' fps';
+    }
 
+    let poses;
+    try {
+      poses = await state.detector.estimatePoses(video, {
+        flipHorizontal: false,
+        maxPoses: 1
+      });
+    } catch (e) {
+      return;
+    }
+
+    const box = $('cameraBox');
+    const rect = box.getBoundingClientRect();
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-    const pw = CONFIG.processWidth;
-    const ph = Math.round(pw * (vh / vw));
-    if (proc.width !== pw || proc.height !== ph) {
-      proc.width = pw;
-      proc.height = ph;
-    }
+    // Clear and prepare overlay (display size)
+    octx.clearRect(0, 0, rect.width, rect.height);
 
-    pctx.drawImage(video, 0, 0, pw, ph);
-    let frame;
-    try {
-      frame = pctx.getImageData(0, 0, pw, ph);
-    } catch (_) {
+    if (!poses || !poses.length) {
+      updatePoseHud(null, null);
+      state.lastHipX = null;
       return;
     }
 
-    if (state.framesToSkip > 0) {
-      state.framesToSkip--;
-      state.lastFrame = frame;
-      state.motionBelow = true;
+    const pose = poses[0];
+    state.lastPose = pose;
+    const kps = pose.keypoints;
+
+    // Draw skeleton
+    drawSkeleton(kps, rect.width, rect.height, vw, vh);
+
+    // Extract robust hip X (normalized 0-1 relative to video)
+    const hipData = getBestHip(kps);
+    updatePoseHud(pose, hipData);
+
+    if (!hipData) {
+      state.lastHipX = null;
       return;
     }
 
-    if (state.lastFrame && state.lastFrame.width === frame.width) {
-      const motion = motionAtLine(frame, state.lastFrame, pw, ph);
+    const hipX = hipData.x; // 0..1
+    const lineX = state.lineXRatio;
 
-      if (state.calibrating) {
-        const bar = $('motionBar');
-        if (bar) bar.style.width = Math.min(100, motion) + '%';
-      }
-
-      // Detect on both armed and (for finish) while race is active
-      const shouldDetect = state.armed || (state.role === 'finish' && state.raceActive);
-      if (shouldDetect) {
-        const now = frameNow;
-        const above = motion >= state.sensitivity;
-
-        if (now - state.lastTriggerAt >= CONFIG.cooldownMs) {
-          // Rising edge: was below, now above → athlete crossed the plane
-          if (above && state.motionBelow) {
-            state.lastTriggerAt = now;
-            const dt = state.prevFrameTime > 0 ? (now - state.prevFrameTime) : 16.67;
-            const estimatedCrossTime = now - dt * 0.5;
-            onMotionTriggered(estimatedCrossTime);
-          }
-        }
-        state.motionBelow = !above;
+    // Calibration meter
+    if (state.calibrating) {
+      const bar = $('motionBar');
+      if (bar) {
+        // show how close the hip is to the plane (relative strength)
+        const dist = Math.abs(hipX - lineX);
+        const strength = Math.max(0, 100 - dist * 400);
+        bar.style.width = Math.min(100, strength) + '%';
       }
     }
 
-    state.lastFrame = frame;
-  }
+    const shouldDetect = state.armed || (state.role === 'finish' && state.raceActive);
+    if (!shouldDetect) {
+      state.lastHipX = hipX;
+      state.lastHipTime = frameNow;
+      return;
+    }
 
-  function motionAtLine(cur, prev, w, h) {
-    // Guard against uninitialized / bad ratio
-    const ratio = (typeof state.lineXRatio === 'number' && isFinite(state.lineXRatio))
-      ? state.lineXRatio
-      : 0.5;
-    const lineX = Math.floor(w * ratio);
-    const band = Math.max(3, Math.floor(w * CONFIG.bandRatio));
-    const step = CONFIG.sampleStep;
-    let changed = 0;
-    const need = CONFIG.requiredPixels;
-    const x0 = Math.max(0, lineX - band);
-    const x1 = Math.min(w - 1, lineX + band);
-    const thr = CONFIG.pixelThreshold;
+    // Rising / falling edge detection across the vertical plane
+    if (state.lastHipX != null && (frameNow - state.lastTriggerAt) >= CONFIG.cooldownMs) {
+      const prev = state.lastHipX;
+      const curr = hipX;
+      // Crossing occurred if signs of (prev - line) and (curr - line) differ
+      const crossed = (prev - lineX) * (curr - lineX) <= 0 && Math.abs(prev - curr) > 0.002;
 
-    for (let y = 0; y < h; y += step) {
-      for (let x = x0; x <= x1; x++) {
-        const i = (y * w + x) * 4;
-        const lum1 = cur.data[i] * 0.299 + cur.data[i + 1] * 0.587 + cur.data[i + 2] * 0.114;
-        const lum2 = prev.data[i] * 0.299 + prev.data[i + 1] * 0.587 + prev.data[i + 2] * 0.114;
-        if (Math.abs(lum1 - lum2) > thr) {
-          changed++;
-          if (changed >= need) return 100;
+      if (crossed) {
+        // Sub-frame interpolation for higher precision
+        const denom = (curr - prev);
+        let alpha = 0.5;
+        if (Math.abs(denom) > 1e-6) {
+          alpha = (lineX - prev) / denom;
+          alpha = Math.max(0, Math.min(1, alpha));
         }
+        const dt = frameNow - state.lastHipTime;
+        const crossTime = state.lastHipTime + alpha * dt;
+
+        state.lastTriggerAt = frameNow;
+        onHipCrossed(crossTime, hipData);
       }
     }
-    return Math.min(100, Math.round((changed / need) * 100));
+
+    state.lastHipX = hipX;
+    state.lastHipTime = frameNow;
   }
 
-  function onMotionTriggered(eventTime) {
+  function getBestHip(kps) {
+    const lh = kps[KP.leftHip];
+    const rh = kps[KP.rightHip];
+    const minS = state.minScore;
+
+    // Prefer the higher-confidence hip; require minimum score
+    let best = null;
+    if (lh && lh.score >= minS) best = { x: lh.x / video.videoWidth, y: lh.y / video.videoHeight, score: lh.score, side: 'L' };
+    if (rh && rh.score >= minS) {
+      if (!best || rh.score > best.score) {
+        best = { x: rh.x / video.videoWidth, y: rh.y / video.videoHeight, score: rh.score, side: 'R' };
+      }
+    }
+
+    // Optional: average both if both good (more stable center of mass)
+    if (lh && rh && lh.score >= minS && rh.score >= minS) {
+      const avgX = (lh.x + rh.x) / 2 / video.videoWidth;
+      const avgY = (lh.y + rh.y) / 2 / video.videoHeight;
+      const avgScore = (lh.score + rh.score) / 2;
+      best = { x: avgX, y: avgY, score: avgScore, side: 'C' };
+    }
+
+    // Also require at least one shoulder or knee for "real person" sanity
+    if (best) {
+      const shoulderOk = (kps[KP.leftShoulder]?.score >= minS * 0.8) || (kps[KP.rightShoulder]?.score >= minS * 0.8);
+      const kneeOk = (kps[KP.leftKnee]?.score >= minS * 0.7) || (kps[KP.rightKnee]?.score >= minS * 0.7);
+      if (!shoulderOk && !kneeOk) return null;
+    }
+
+    return best;
+  }
+
+  function drawSkeleton(kps, dispW, dispH, vidW, vidH) {
+    const sx = dispW / vidW;
+    const sy = dispH / vidH;
+
+    // Connections
+    octx.lineWidth = CONFIG.skeletonLineWidth;
+    octx.lineCap = 'round';
+    for (const [a, b] of SKELETON) {
+      const ka = kps[a];
+      const kb = kps[b];
+      if (!ka || !kb || ka.score < 0.2 || kb.score < 0.2) continue;
+      octx.beginPath();
+      octx.strokeStyle = `rgba(0, 229, 255, ${Math.min(ka.score, kb.score)})`;
+      octx.moveTo(ka.x * sx, ka.y * sy);
+      octx.lineTo(kb.x * sx, kb.y * sy);
+      octx.stroke();
+    }
+
+    // Keypoints — highlight hips, knees, ankles, shoulders, elbows
+    const highlight = new Set([
+      KP.leftHip, KP.rightHip,
+      KP.leftKnee, KP.rightKnee,
+      KP.leftAnkle, KP.rightAnkle,
+      KP.leftShoulder, KP.rightShoulder,
+      KP.leftElbow, KP.rightElbow
+    ]);
+
+    for (let i = 0; i < kps.length; i++) {
+      const k = kps[i];
+      if (!k || k.score < 0.15) continue;
+      const isHip = (i === KP.leftHip || i === KP.rightHip);
+      const r = isHip ? CONFIG.keypointRadius + 2 : CONFIG.keypointRadius;
+      octx.beginPath();
+      octx.fillStyle = isHip
+        ? `rgba(0, 230, 118, ${k.score})`
+        : highlight.has(i)
+          ? `rgba(0, 229, 255, ${k.score})`
+          : `rgba(255,255,255,${k.score * 0.6})`;
+      octx.arc(k.x * sx, k.y * sy, r, 0, Math.PI * 2);
+      octx.fill();
+    }
+  }
+
+  function updatePoseHud(pose, hipData) {
+    const chipPose = $('chipPose');
+    const chipHip = $('chipHip');
+    if (!pose) {
+      chipPose.textContent = 'Pose: none';
+      chipPose.className = 'pose-chip warn';
+      chipHip.textContent = 'Hip: —';
+      chipHip.className = 'pose-chip';
+      return;
+    }
+    const score = pose.score != null ? pose.score : 0;
+    chipPose.textContent = `Pose: ${(score * 100).toFixed(0)}%`;
+    chipPose.className = 'pose-chip ' + (score > 0.4 ? 'ok' : 'warn');
+
+    if (hipData) {
+      chipHip.textContent = `Hip ${hipData.side}: ${(hipData.score * 100).toFixed(0)}%`;
+      chipHip.className = 'pose-chip ok';
+    } else {
+      chipHip.textContent = 'Hip: low conf';
+      chipHip.className = 'pose-chip warn';
+    }
+  }
+
+  function onHipCrossed(eventTime, hipData) {
     const t = eventTime != null ? eventTime : performance.now();
 
     if (state.role === 'start') {
-      // Only fire start once per arm
       if (state.raceActive || state.startTimeLocal != null) return;
       state.startTimeLocal = t;
       state.raceActive = true;
-      setStatus('Start detected — running', 'running');
+      setStatus('Start · hip crossed', 'running');
       startLiveTimer();
       flash();
       beep(660, 90);
@@ -1019,14 +1209,14 @@ body {
         state.conn.send({ type: 'start', t: state.startTimeLocal });
       }
     } else if (state.role === 'finish') {
-      // Must have received the start event first
       if (!state.raceActive || state.startTimeLocal == null) return;
       state.finishTimeLocal = t;
       const elapsed = (state.finishTimeLocal - state.startTimeLocal) / 1000;
       if (elapsed < CONFIG.minRaceSec) return;
 
-      const frameUnc = state.prevFrameTime > 0
-        ? (state.lastFrameTime - state.prevFrameTime) / 2
+      // Uncertainty estimate: half frame interval + half RTT
+      const frameUnc = state.lastHipTime > 0 && state.lastHipX != null
+        ? Math.max(4, (performance.now() - state.lastHipTime) / 2)
         : 8;
       const syncUnc = state.rttMs != null ? state.rttMs / 2 : 15;
       const uncertaintyMs = Math.sqrt(frameUnc * frameUnc + syncUnc * syncUnc);
@@ -1044,9 +1234,9 @@ body {
   $('btnEnableCam').addEventListener('click', enableCamera);
   $('btnArm').addEventListener('click', () => armSystem(false));
   $('btnCalibrate').addEventListener('click', toggleCalibration);
-  $('sensitivitySlider').addEventListener('input', (e) => {
-    state.sensitivity = Number(e.target.value);
-    $('sensitivityValue').textContent = state.sensitivity;
+  $('minScoreSlider').addEventListener('input', (e) => {
+    state.minScore = Number(e.target.value);
+    $('minScoreValue').textContent = state.minScore.toFixed(2);
   });
   $('distanceInput').addEventListener('change', () => {
     const t = parseFloat($('timer').textContent);
